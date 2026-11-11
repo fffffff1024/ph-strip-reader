@@ -8,7 +8,7 @@
 
 ## 下载 / 在线使用
 
-- **Android 安装包**：[Releases](https://github.com/fffffff1024/ph-strip-reader/releases/latest) 里下载 `pH试纸读数.apk`（Android 7.0 及以上）
+- **Android 安装包**：[Releases](https://github.com/fffffff1024/ph-strip-reader/releases/latest) 里下载 `ph-strip-reader-1.0.0.apk`（Android 7.0 及以上）
 - **网页版**（免安装，手机浏览器直接打开）：https://fffffff1024.github.io/ph-strip-reader/
 - **Python 桌面版**：见下方「Python 版」
 
