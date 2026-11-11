@@ -6,6 +6,12 @@
 
 ![界面截图](python/gui_camera.png)
 
+## 下载 / 在线使用
+
+- **Android 安装包**：[Releases](https://github.com/fffffff1024/ph-strip-reader/releases/latest) 里下载 `pH试纸读数.apk`（Android 7.0 及以上）
+- **网页版**（免安装，手机浏览器直接打开）：https://fffffff1024.github.io/ph-strip-reader/
+- **Python 桌面版**：见下方「Python 版」
+
 ## 功能
 
 - **实时取色**：取景框内的颜色实时分析，约每秒 8 次刷新
@@ -19,7 +25,8 @@
 
 ```
 ph-strip-app/
-├─ www/                     Android 版的界面与逻辑（打包进 APK 的 assets）
+├─ docs/                    Android 版的界面与逻辑（打包进 APK 的 assets）
+│                          同时是 GitHub Pages 的发布目录
 │  ├─ index.html
 │  ├─ style.css
 │  └─ app.js                取色、色差、色卡匹配
@@ -50,7 +57,7 @@ ph-strip-app/
 ### 本地预览网页部分
 
 ```bash
-python -m http.server 8080 --directory www
+python -m http.server 8080 --directory docs
 ```
 
 浏览器打开 http://127.0.0.1:8080 ，没有摄像头时可以点提示选一张照片。
@@ -91,4 +98,4 @@ python python/ph_strip.py 照片.jpg --chart 色卡.json --json
 
 ## 许可
 
-待定。
+[MIT License](LICENSE)

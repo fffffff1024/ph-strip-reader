@@ -26,8 +26,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // 网页资源直接用 www 目录，避免两份代码
-    sourceSets["main"].assets.srcDirs("src/main/assets", "../www")
+    // 网页资源直接用 docs 目录，避免两份代码（这个目录同时是 GitHub Pages 的发布目录）
+    sourceSets["main"].assets.srcDirs("src/main/assets", "../docs")
 }
 
 dependencies {
