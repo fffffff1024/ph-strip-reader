@@ -85,28 +85,76 @@ html, body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
-/* 取样框位置必须和 app.js 里的 RECT 常量一致：左右各留 20%，垂直居中 10% 高 */
+/* 位置和大小由 app.js 用百分比写入，可拖动、可拖四角缩放 */
 .reticle-box {
+  position: absolute;
+  left: 20%;
+  top: 45%;
   width: 60%;
   height: 10%;
+  min-width: 24px;
+  min-height: 14px;
   border: 2px solid rgba(255, 255, 255, .85);
   border-radius: 8px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, .35);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: move;
 }
 
 .reticle-tip {
-  margin-top: 12px;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 10px;
+  white-space: nowrap;
   font-size: 12px;
   color: rgba(255, 255, 255, .7);
   background: rgba(0, 0, 0, .45);
   padding: 5px 10px;
   border-radius: 999px;
+  pointer-events: none;
+}
+
+.handle {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .35);
+  pointer-events: auto;
+  touch-action: none;
+}
+.handle[data-handle="tl"] { left: 0; top: 0; cursor: nwse-resize; }
+.handle[data-handle="tr"] { left: 100%; top: 0; cursor: nesw-resize; }
+.handle[data-handle="bl"] { left: 0; top: 100%; cursor: nesw-resize; }
+.handle[data-handle="br"] { left: 100%; top: 100%; cursor: nwse-resize; }
+
+/* 取色确认条 */
+.pick-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 56px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 21, 28, .96);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  z-index: 30;
+}
+.pick-bar-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
 }
 
 .status {
@@ -404,6 +452,16 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
   font-size: 12px;
   color: var(--muted);
 }
+.m-entry .m-recolor {
+  border: 1px solid var(--line);
+  background: #131a22;
+  color: var(--text);
+  font-size: 12px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
 .m-entry .m-del {
   margin-left: auto;
   border: none;
@@ -414,6 +472,20 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
   padding: 4px 6px;
 }
+
+.m-add {
+  width: 100%;
+  margin-top: 2px;
+  padding: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.m-add:active { background: #131a22; }
 
 .sheet-actions.wrap {
   flex-wrap: wrap;

@@ -8,16 +8,18 @@
 
 ## 下载 / 在线使用
 
-- **Android 安装包**：[Releases](https://github.com/fffffff1024/ph-strip-reader/releases/latest) 里下载 `ph-strip-reader-1.0.0.apk`（Android 7.0 及以上）
+- **Android 安装包**：[Releases](https://github.com/fffffff1024/ph-strip-reader/releases/latest) 里下载 `ph-strip-reader-1.1.0.apk`（Android 7.0 及以上）
 - **网页版**（免安装，手机浏览器直接打开）：https://fffffff1024.github.io/ph-strip-reader/
 - **Python 桌面版**：见下方「Python 版」
 
 ## 功能
 
 - **实时取色**：取景框内的颜色实时分析，约每秒 8 次刷新
+- **取样框可调**：拖动框体移动位置，拖四个角缩放大小，设置会自动保存
 - **色差匹配**：sRGB → CIELAB(D65) → CIEDE2000，比直接比 RGB 距离准得多
 - **白纸校准**：用白纸做白平衡参考，抵消灯光偏色
-- **自定义色卡**：任何品牌的试纸，拍下包装上的比色卡即可录入；每个色块的 pH 都能单独改
+- **自定义色卡**：任何品牌的试纸，拍下包装上的比色卡即可录入；录入时摄像头保持实时，边对边点
+- **色块可编辑**：每个色块的 pH 直接改，颜色可以用「重拍」对着实物重新取色
 - **记录与导出**：测量记录存在本地，可导出 CSV；色卡可导出/导入 JSON
 - **相册选图**：从相册选一张照片分析，不必实时对焦
 

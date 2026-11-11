@@ -16,6 +16,7 @@ const LS_ACTIVE = 'phstrip.active.v1';
 const LS_WB = 'phstrip.wb.v1';
 const LS_RECORDS = 'phstrip.records.v1';
 const LS_SEEDED = 'phstrip.seeded.v1';
+const LS_RECT = 'phstrip.rect.v1';
 
 /* ΔE 超过这个值，说明取到的颜色根本不在这张色卡上，不要硬报一个 pH */
 const OUT_OF_RANGE = 15;
@@ -163,6 +164,9 @@ let mode = 'camera';           // camera | image
 let lastTick = 0;
 let records = [];              // 测量记录
 let lastReading = null;        // 当前这一帧的读数，点「记录」时存下来
+let reticle = { x: 0.20, y: 0.45, w: 0.60, h: 0.10 };   // 取样框，相对取景区的比例
+let dragState = null;          // 拖动取样框时的临时状态
+let pickingFor = null;         // { chartId, index } 正在用摄像头替换哪个色块
 
 /* ---------- 持久化 ---------- */
 function loadState() {
@@ -196,6 +200,12 @@ function loadState() {
   } catch (e) {
     records = [];
   }
+  try {
+    const r = JSON.parse(localStorage.getItem(LS_RECT) || 'null');
+    if (r && [r.x, r.y, r.w, r.h].every((n) => typeof n === 'number')) {
+      reticle = { x: r.x, y: r.y, w: r.w, h: r.h };
+    }
+  } catch (e) { /* 用默认框 */ }
 }
 
 function saveRecords() {
@@ -309,6 +319,7 @@ function sampleReticle() {
  * ========================================================= */
 function matchAgainst(lab, chart) {
   return chart.entries
+    .filter((e) => e.ph !== '' && e.ph !== null && !isNaN(parseFloat(e.ph)))
     .map((e) => {
       const [r, g, b] = hexToRgb(e.hex);
       return { ph: e.ph, hex: e.hex, dE: deltaE2000(lab, rgbToLab(r, g, b)) };
@@ -463,6 +474,8 @@ $('btnGallery').addEventListener('click', () => {
 function loop(ts) {
   requestAnimationFrame(loop);
   if (frozen) return;
+  // 录入色卡时画布自己在刷新，主循环让出 CPU
+  if (!$('editor').classList.contains('hidden')) return;
   if (ts - lastTick < 120) return;      // 约 8 帧/秒，省电
   lastTick = ts;
   if (!frameSource()) return;
@@ -479,6 +492,76 @@ $('btnFreeze').addEventListener('click', () => {
   $('btnFreeze').textContent = frozen ? '继续' : '冻结';
   if (frozen) render();
 });
+
+/* ---------- 取样框：拖动移动、拖四角缩放 ---------- */
+function applyReticle() {
+  const box = document.querySelector('.reticle-box');
+  if (!box) return;
+  box.style.left = (reticle.x * 100) + '%';
+  box.style.top = (reticle.y * 100) + '%';
+  box.style.width = (reticle.w * 100) + '%';
+  box.style.height = (reticle.h * 100) + '%';
+}
+
+function saveReticle() {
+  localStorage.setItem(LS_RECT, JSON.stringify(reticle));
+}
+
+(function setupReticleDrag() {
+  const box = document.querySelector('.reticle-box');
+  const stage = document.querySelector('.stage-wrap');
+  if (!box || !stage) return;
+
+  box.addEventListener('pointerdown', (e) => {
+    const r = stage.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    dragState = {
+      mode: e.target.dataset.handle || 'move',
+      startX: e.clientX,
+      startY: e.clientY,
+      rect: { ...reticle },
+      W: r.width,
+      H: r.height,
+    };
+    try { box.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+    e.preventDefault();
+  });
+
+  box.addEventListener('pointermove', (e) => {
+    if (!dragState) return;
+    const MIN = 0.04;
+    const dx = (e.clientX - dragState.startX) / dragState.W;
+    const dy = (e.clientY - dragState.startY) / dragState.H;
+    const r = dragState.rect;
+    const m = dragState.mode;
+
+    if (m === 'move') {
+      reticle = {
+        x: clamp(r.x + dx, 0, 1 - r.w),
+        y: clamp(r.y + dy, 0, 1 - r.h),
+        w: r.w,
+        h: r.h,
+      };
+    } else {
+      let x0 = r.x, y0 = r.y, x1 = r.x + r.w, y1 = r.y + r.h;
+      if (m.includes('l')) x0 = clamp(r.x + dx, 0, x1 - MIN);
+      if (m.includes('r')) x1 = clamp(r.x + r.w + dx, x0 + MIN, 1);
+      if (m.includes('t')) y0 = clamp(r.y + dy, 0, y1 - MIN);
+      if (m.includes('b')) y1 = clamp(r.y + r.h + dy, y0 + MIN, 1);
+      reticle = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    }
+    applyReticle();
+  });
+
+  const endDrag = () => {
+    if (!dragState) return;
+    dragState = null;
+    saveReticle();
+    render();
+  };
+  box.addEventListener('pointerup', endDrag);
+  box.addEventListener('pointercancel', endDrag);
+})();
 
 /* 白纸校准 */
 $('btnCal').addEventListener('click', () => {
@@ -527,8 +610,7 @@ function renderManage() {
   const chart = activeChart();
 
   if (!chart.entries.length) {
-    box.innerHTML = '<div class="history-empty">这张色卡还没有色块，点下面「添加色块」录入</div>';
-    return;
+    box.innerHTML = '<div class="history-empty">这张色卡还没有色块</div>';
   }
 
   chart.entries.forEach((entry, i) => {
@@ -539,6 +621,7 @@ function renderManage() {
        <span class="m-hex">${entry.hex}</span>
        <input class="m-ph" type="text" inputmode="decimal" value="${entry.ph}">
        <span class="m-unit">pH</span>
+       <button class="m-recolor">重拍</button>
        <button class="m-del">×</button>`;
 
     const input = row.querySelector('.m-ph');
@@ -550,6 +633,14 @@ function renderManage() {
       render();
     });
 
+    // 用当前摄像头画面替换这个色块的颜色
+    row.querySelector('.m-recolor').addEventListener('click', () => {
+      pickingFor = { chartId: chart.id, index: i };
+      $('sheet').classList.add('hidden');
+      $('pickBar').classList.remove('hidden');
+      setStatus('把取样框对准要替换的色块，再点「确定」');
+    });
+
     row.querySelector('.m-del').addEventListener('click', () => {
       chart.entries.splice(i, 1);
       saveCharts();
@@ -559,11 +650,59 @@ function renderManage() {
 
     box.appendChild(row);
   });
+
+  // 直接在这里新增一个空白色块：先填 pH，再用「重拍」取颜色
+  const addBtn = document.createElement('button');
+  addBtn.className = 'm-add';
+  addBtn.textContent = '＋ 添加一个色块';
+  addBtn.addEventListener('click', () => {
+    chart.entries.push({ ph: '', hex: '#9aa3ad' });
+    saveCharts();
+    renderManage();
+    render();
+    const inputs = document.querySelectorAll('#entryManage .m-ph');
+    const last = inputs[inputs.length - 1];
+    if (last) { last.focus(); last.select(); }
+  });
+  box.appendChild(addBtn);
 }
 
 /* 新建色卡 / 给当前色卡添加色块 */
 $('btnNewChart').addEventListener('click', () => openEditor('new'));
 $('btnAddSwatch').addEventListener('click', () => openEditor('append'));
+
+/* ---------- 用摄像头替换某个色块的颜色 ---------- */
+$('pickCancel').addEventListener('click', () => {
+  pickingFor = null;
+  $('pickBar').classList.add('hidden');
+  renderManage();
+  $('sheet').classList.remove('hidden');
+});
+
+$('pickConfirm').addEventListener('click', () => {
+  if (!pickingFor) return;
+  const chart = charts.find((c) => c.id === pickingFor.chartId);
+  const entry = chart && chart.entries[pickingFor.index];
+  if (!entry) {
+    pickingFor = null;
+    $('pickBar').classList.add('hidden');
+    return;
+  }
+
+  const rgb = sampleReticle();
+  if (!rgb) { setStatus('还没有画面，无法取色'); return; }
+
+  const [r, g, b] = rgb.map((v) => clamp(v, 0, 255));
+  entry.hex = rgbToHex(r, g, b);
+  saveCharts();
+
+  pickingFor = null;
+  $('pickBar').classList.add('hidden');
+  renderManage();
+  $('sheet').classList.remove('hidden');
+  render();
+  setStatus(`已把 pH ${entry.ph} 的色块改成 ${entry.hex}`);
+});
 
 /* 删除当前色卡 */
 $('btnDelChart').addEventListener('click', () => {
@@ -620,9 +759,36 @@ $('importFile').addEventListener('change', async (e) => {
 let editorEntries = [];
 let pendingPick = null;
 let editorMode = 'new';        // new = 新建色卡，append = 给当前色卡加色块
+let editorLive = false;        // 编辑时摄像头是否保持实时
+let editorTimer = null;
+
+/** 让录入画布跟随摄像头刷新，这样不用先对好再点按钮 */
+function startEditorLive() {
+  if (mode !== 'camera') return;
+  stopEditorLive();
+  editorLive = true;
+
+  editorTimer = setInterval(() => {
+    const f = frameSource();
+    const c = $('editorCanvas');
+    if (!f || !c) return;
+    if (c.width !== f.w || c.height !== f.h) {
+      c.width = f.w;
+      c.height = f.h;
+    }
+    c.getContext('2d').drawImage(f.src, 0, 0, f.w, f.h);
+  }, 120);
+}
+
+function stopEditorLive() {
+  editorLive = false;
+  if (editorTimer) clearInterval(editorTimer);
+  editorTimer = null;
+}
 
 $('btnAddChart').addEventListener('click', () => openEditor('new'));
 $('editorCancel').addEventListener('click', () => {
+  stopEditorLive();
   $('editor').classList.add('hidden');
   $('sheet').classList.remove('hidden');
 });
@@ -632,6 +798,8 @@ function openEditor(mode) {
 
   const f = frameSource();
   if (!f) { setStatus('还没有画面，无法录入色块'); return; }
+
+  stopEditorLive();
 
   const c = $('editorCanvas');
   c.width = f.w;
@@ -651,6 +819,9 @@ function openEditor(mode) {
 
   $('sheet').classList.add('hidden');
   $('editor').classList.remove('hidden');
+
+  // 摄像头模式下让录入画布持续刷新，不用先对好再点按钮
+  startEditorLive();
 }
 
 $('editorCanvas').addEventListener('click', (ev) => {
@@ -725,6 +896,7 @@ $('editorSave').addEventListener('click', () => {
   localStorage.setItem(LS_ACTIVE, activeId);
   $('chartName').textContent = activeChart().name;
 
+  stopEditorLive();
   $('editor').classList.add('hidden');
   renderManage();
   $('sheet').classList.remove('hidden');
@@ -836,6 +1008,7 @@ function renderHistory() {
  * 启动
  * ========================================================= */
 loadState();
+applyReticle();
 $('chartName').textContent = activeChart().name;
 updateGalleryButton();
 initCamera();

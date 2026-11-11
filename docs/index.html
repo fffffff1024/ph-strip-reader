@@ -23,8 +23,19 @@
     <video id="video" class="media" playsinline autoplay muted></video>
     <img id="photo" class="media hidden" alt="">
     <div class="reticle">
-      <div class="reticle-box"></div>
-      <div class="reticle-tip">把试纸变色区放进框内</div>
+      <div class="reticle-box" id="reticleBox">
+        <span class="handle" data-handle="tl"></span>
+        <span class="handle" data-handle="tr"></span>
+        <span class="handle" data-handle="bl"></span>
+        <span class="handle" data-handle="br"></span>
+        <div class="reticle-tip">拖动框可移动，拖四角可缩放</div>
+      </div>
+    </div>
+
+    <div id="pickBar" class="pick-bar hidden">
+      <span class="pick-bar-text">对准要替换的色块，再点「确定」</span>
+      <button id="pickCancel" class="btn mini ghost">取消</button>
+      <button id="pickConfirm" class="btn mini">确定</button>
     </div>
     <div id="status" class="status">正在启动摄像头…</div>
     <input id="filePick" type="file" accept="image/*" class="hidden">
