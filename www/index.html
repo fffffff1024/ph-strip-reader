@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>pH 试纸读数</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <button id="btnChart" class="chip">
+      <span class="chip-key">色卡</span>
+      <span id="chartName" class="chip-val">广泛试纸 1–14</span>
+      <span class="caret">▾</span>
+    </button>
+    <button id="btnCal" class="chip">白纸校准</button>
+  </header>
+
+  <main class="stage-wrap">
+    <video id="video" class="media" playsinline autoplay muted></video>
+    <img id="photo" class="media hidden" alt="">
+    <div class="reticle">
+      <div class="reticle-box"></div>
+      <div class="reticle-tip">把试纸变色区放进框内</div>
+    </div>
+    <div id="status" class="status">正在启动摄像头…</div>
+    <input id="filePick" type="file" accept="image/*" class="hidden">
+  </main>
+
+  <section class="readout">
+    <div class="readout-row">
+      <div class="ph"><span id="phNum">--</span><em>pH</em></div>
+      <div class="match">
+        <div id="matchSwatch" class="swatch"></div>
+        <div class="match-text">
+          <div id="matchLabel">未识别</div>
+          <div id="deltaE" class="muted">ΔE —</div>
+        </div>
+      </div>
+    </div>
+    <div id="measured" class="measured muted">取样颜色 —</div>
+    <div id="candidates" class="candidates"></div>
+    <button id="btnNotice" class="notice">
+      读数受光线影响较大，仅用于日常粗测 · 点此查看说明
+    </button>
+  </section>
+
+  <footer class="actions">
+    <button id="btnGallery" class="btn">相册</button>
+    <button id="btnFreeze" class="btn">冻结</button>
+    <button id="btnSave" class="btn">记录</button>
+  </footer>
+  <footer class="actions sub">
+    <button id="btnAddChart" class="btn ghost">录入新色卡</button>
+    <button id="btnHistory" class="btn ghost">历史记录</button>
+  </footer>
+</div>
+
+<!-- 色卡管理弹层 -->
+<div id="sheet" class="sheet hidden">
+  <div class="sheet-panel">
+    <div class="sheet-title">色卡管理</div>
+
+    <div class="field">
+      <label for="chartSelect">当前色卡</label>
+      <select id="chartSelect" class="select"></select>
+    </div>
+
+    <div class="m-hint">直接改下面的 pH 值会自动保存；点 × 删除这个色块</div>
+    <div id="entryManage" class="entry-manage"></div>
+
+    <div class="sheet-actions wrap">
+      <button id="btnNewChart" class="btn mini">新建色卡</button>
+      <button id="btnAddSwatch" class="btn mini">添加色块</button>
+      <button id="btnExport" class="btn mini ghost">导出 JSON</button>
+      <button id="btnImport" class="btn mini ghost">导入 JSON</button>
+      <button id="btnDelChart" class="btn mini danger">删除色卡</button>
+    </div>
+    <div class="sheet-actions">
+      <button id="sheetClose" class="btn">关闭</button>
+    </div>
+    <input id="importFile" type="file" accept="application/json,.json" class="hidden">
+  </div>
+</div>
+
+<!-- 色卡录入弹层 -->
+<div id="editor" class="sheet hidden">
+  <div class="sheet-panel">
+    <div class="sheet-title" id="editorTitle">新建色卡</div>
+    <div class="field" id="nameField">
+      <label for="newChartName">色卡名称</label>
+      <input id="newChartName" type="text" placeholder="例如：精密试纸 5.4–7.0">
+    </div>
+    <div class="hint">点一下画面里比色卡的色块，再填它对应的 pH</div>
+    <div class="editor-canvas-wrap">
+      <canvas id="editorCanvas"></canvas>
+    </div>
+    <div id="pickForm" class="pick-form hidden">
+      <span id="pickSwatch" class="swatch small"></span>
+      <span id="pickHex" class="muted"></span>
+      <input id="pickPh" type="text" inputmode="decimal" placeholder="pH">
+      <button id="pickOk" class="btn mini">确定</button>
+    </div>
+    <div id="entryList" class="entry-list"></div>
+    <div class="sheet-actions">
+      <button id="editorCancel" class="btn ghost">取消</button>
+      <button id="editorSave" class="btn">保存色卡</button>
+    </div>
+  </div>
+</div>
+
+<!-- 使用说明弹层 -->
+<div id="notice" class="sheet hidden">
+  <div class="sheet-panel">
+    <div class="sheet-title">使用说明</div>
+    <div class="notice-body">
+      <p>手机拍照受光线影响很大，同一张试纸在不同光下颜色能差一档。做到 ±0.5 个 pH 单位是现实的，想更准必须固定光源（固定台灯 + 固定距离）。</p>
+      <p>这工具适合日常粗测（水质、土壤等），不能替代实验室仪器，不要用于医疗判断。</p>
+    </div>
+    <div class="sheet-actions">
+      <button id="noticeClose" class="btn">知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- 历史记录弹层 -->
+<div id="history" class="sheet hidden">
+  <div class="sheet-panel">
+    <div class="sheet-title">历史记录</div>
+    <div id="historyList" class="history-list"></div>
+    <div class="sheet-actions">
+      <button id="historyExport" class="btn ghost">复制 CSV</button>
+      <button id="historyClear" class="btn ghost">清空</button>
+      <button id="historyClose" class="btn">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
