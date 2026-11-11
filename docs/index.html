@@ -106,6 +106,10 @@
       <input id="newChartName" type="text" placeholder="例如：精密试纸 5.4–7.0">
     </div>
     <div class="hint">点一下画面里比色卡的色块，再填它对应的 pH</div>
+    <div class="editor-tools">
+      <button id="editorGallery" class="btn mini">从相册选图</button>
+      <button id="editorCamera" class="btn mini ghost hidden">用摄像头</button>
+    </div>
     <div class="editor-canvas-wrap">
       <canvas id="editorCanvas"></canvas>
     </div>
@@ -116,6 +120,7 @@
       <button id="pickOk" class="btn mini">确定</button>
     </div>
     <div id="entryList" class="entry-list"></div>
+    <input id="editorFilePick" type="file" accept="image/*" class="hidden">
     <div class="sheet-actions">
       <button id="editorCancel" class="btn ghost">取消</button>
       <button id="editorSave" class="btn">保存色卡</button>

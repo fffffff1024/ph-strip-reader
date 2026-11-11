@@ -761,6 +761,8 @@ let pendingPick = null;
 let editorMode = 'new';        // new = 新建色卡，append = 给当前色卡加色块
 let editorLive = false;        // 编辑时摄像头是否保持实时
 let editorTimer = null;
+let editorImage = null;        // 编辑器里用的相册图片
+let editorReady = false;       // 画布上是否有可点的画面
 
 /** 让录入画布跟随摄像头刷新，这样不用先对好再点按钮 */
 function startEditorLive() {
@@ -796,15 +798,32 @@ $('editorCancel').addEventListener('click', () => {
 function openEditor(mode) {
   editorMode = mode === 'append' ? 'append' : 'new';
 
-  const f = frameSource();
-  if (!f) { setStatus('还没有画面，无法录入色块'); return; }
-
   stopEditorLive();
+  editorImage = null;
+  editorReady = false;
 
   const c = $('editorCanvas');
-  c.width = f.w;
-  c.height = f.h;
-  c.getContext('2d').drawImage(f.src, 0, 0, f.w, f.h);
+  const f = frameSource();
+
+  if (f) {
+    c.width = f.w;
+    c.height = f.h;
+    c.getContext('2d').drawImage(f.src, 0, 0, f.w, f.h);
+    editorReady = true;
+  } else {
+    // 没有任何画面时也能打开，先提示去相册选图
+    c.width = 600;
+    c.height = 400;
+    const g = c.getContext('2d');
+    g.fillStyle = '#1a222c';
+    g.fillRect(0, 0, 600, 400);
+    g.fillStyle = '#7d8b9a';
+    g.font = '20px "Microsoft YaHei", sans-serif';
+    g.textAlign = 'center';
+    g.fillText('点「从相册选图」选择一张比色卡照片', 300, 200);
+  }
+
+  $('editorCamera').classList.toggle('hidden', mode !== 'camera');
 
   editorEntries = [];
   pendingPick = null;
@@ -824,7 +843,50 @@ function openEditor(mode) {
   startEditorLive();
 }
 
+/* ---------- 编辑器里从相册选图 ---------- */
+$('editorGallery').addEventListener('click', () => $('editorFilePick').click());
+
+$('editorFilePick').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  const img = new Image();
+  img.onload = () => {
+    stopEditorLive();
+    editorImage = img;
+    editorReady = true;
+
+    const c = $('editorCanvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    c.getContext('2d').drawImage(img, 0, 0);
+
+    $('editorCamera').classList.toggle('hidden', mode !== 'camera');
+    setStatus('已载入相册图片，点色块取色');
+  };
+  img.onerror = () => setStatus('这张图片打不开，换一张试试');
+  img.src = URL.createObjectURL(file);
+  e.target.value = '';
+});
+
+$('editorCamera').addEventListener('click', () => {
+  const f = frameSource();
+  if (!f || mode !== 'camera') { setStatus('当前没有摄像头画面'); return; }
+
+  editorImage = null;
+  editorReady = true;
+
+  const c = $('editorCanvas');
+  c.width = f.w;
+  c.height = f.h;
+  c.getContext('2d').drawImage(f.src, 0, 0, f.w, f.h);
+
+  startEditorLive();
+});
+
 $('editorCanvas').addEventListener('click', (ev) => {
+  if (!editorReady) { setStatus('先点「从相册选图」选一张照片'); return; }
+
   const c = $('editorCanvas');
   const rect = c.getBoundingClientRect();
   const x = Math.round(((ev.clientX - rect.left) / rect.width) * c.width);
